@@ -14,7 +14,7 @@ gulp.task('test', function(){
 });
 
 gulp.task('build', function () {
-  gulp.src(['./' + package.name + '.js'])
+  gulp.src(['./src/index.js'])
     .pipe(uglify())
     .pipe(concat(package.name + '.min.js'))
     .pipe(gulp.dest('./lib'));
