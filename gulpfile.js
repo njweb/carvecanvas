@@ -35,4 +35,4 @@ gulp.task('watch', function () {
   gulp.watch('./spec/*.js', ['spec']);
 });
 
-gulp.task('default', ['build'], function () {});
+gulp.task('default', ['build_libs'], function () {});
