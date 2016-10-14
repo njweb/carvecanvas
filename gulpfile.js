@@ -31,7 +31,7 @@ gulp.task('spec', function () {
 });
 
 gulp.task('watch', function () {
-  gulp.watch('./*.js', ['spec']);
+  gulp.watch('./src/*.js', ['spec']);
   gulp.watch('./spec/*.js', ['spec']);
 });
 
