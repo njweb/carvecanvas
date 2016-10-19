@@ -1,6 +1,8 @@
 // let carveCtx;
 // let shapeObj;
 
+import {originAxis as originAxisMapFunctions} from './coordinates.js';
+
 let isObj = (v) => v !== null && typeof v === 'object';
 
 const instructionCodes = {
@@ -20,132 +22,208 @@ let validateCanvasCtxArgument = (canvasCtx) => {
   else return canvasCtx;
 };
 
-let carve = (canvasCtx) => {
-  canvasCtx = validateCanvasCtxArgument(canvasCtx);
+let carve = (srcCtx, options) => {
+  let canvasCtx = validateCanvasCtxArgument(srcCtx);
 
-  let carveCtx = {
-    canvasCtx,
+  options = options ? Object.create(options) : {};
+  options.originAxisType = options.originAxisType ? options.originAxisType : 0;
+  options.rootTransform = options.rootTransform ? options.rootTransform : [0, 0];
 
-    _transforms: [],
-    _instructions: [],
-    _instructionIndex: 0,
+  let carveRoot = {
+    _mapToCanvas: originAxisMapFunctions[options.originAxisType]([
+      canvasCtx.canvas.width,
+      canvasCtx.canvas.height
+    ]),
+    _applyTransform: function (out, transform, p) {
+      return this._mergeTransforms(out, transform, p);
+    },
+    _mergeTransforms: function (out, a, b) {
+      out[0] = a[0] + b[0];
+      out[1] = a[1] + b[1];
+      return out;
+    },
 
-    // _mapToCanvas: () => {},
-    // _applyTransform: () => {},
-    // _mergeTransforms: () => {},
-    // _setTransform: () => {},
-    //
-    // pushTransform: () => {},
-    // popTransform: () => {},
-    //
-    // makeChild: () => {},
-    // render: () => {}
-  };
+    moveTo: function (p) {
+      let i = this._instructionIndex;
 
-  carveCtx.moveTo = (p) => {
-    let i = carveCtx._instructionIndex;
+      this._instructions[i] = instructionCodes.moveTo;
 
-    carveCtx._instructions[i] = instructionCodes.moveTo;
+      let pTransformed = this._applyTransform([], this.getCurrentTransform(), p);
 
-    carveCtx._instructions[i + 1] = p[0];
-    carveCtx._instructions[i + 2] = p[1];
+      this._instructions[i + 1] = pTransformed[0];
+      this._instructions[i + 2] = pTransformed[1];
 
-    carveCtx._instructionIndex = i + 1 + 2;
-    return carveCtx;
-  };
-  carveCtx.lineTo = (p) => {
-    let i = carveCtx._instructionIndex;
+      this._instructionIndex = i + 1 + 2;
+      return this;
+    },
+    lineTo: function (p) {
+      let i = this._instructionIndex;
 
-    carveCtx._instructions[i] = instructionCodes.lineTo;
+      this._instructions[i] = instructionCodes.lineTo;
 
-    carveCtx._instructions[i + 1] = p[0];
-    carveCtx._instructions[i + 2] = p[1];
+      let pTransformed = this._applyTransform([], this.getCurrentTransform(), p);
 
-    carveCtx._instructionIndex = i + 1 + 2;
-    return carveCtx;
-  };
-  carveCtx.bezierTo = (cA, cB, p) => {
-    let i = carveCtx._instructionIndex;
+      this._instructions[i + 1] = pTransformed[0];
+      this._instructions[i + 2] = pTransformed[1];
 
-    carveCtx._instructions[i] = instructionCodes.bezierTo;
+      this._instructionIndex = i + 1 + 2;
+      return this;
+    },
+    bezierTo: function (cA, cB, p) {
+      let i = this._instructionIndex;
 
-    carveCtx._instructions[i + 1] = cA[0];
-    carveCtx._instructions[i + 2] = cA[1];
+      this._instructions[i] = instructionCodes.bezierTo;
 
-    carveCtx._instructions[i + 3] = cB[0];
-    carveCtx._instructions[i + 4] = cB[1];
+      let cATransformed = this._applyTransform([], this.getCurrentTransform(), cA);
+      let cBTransformed = this._applyTransform([], this.getCurrentTransform(), cB);
+      let pTransformed = this._applyTransform([], this.getCurrentTransform(), p);
 
-    carveCtx._instructions[i + 5] = p[0];
-    carveCtx._instructions[i + 6] = p[1];
+      this._instructions[i + 1] = cATransformed[0];
+      this._instructions[i + 2] = cATransformed[1];
 
-    carveCtx._instructionIndex = i + 1 + 2 + 2 + 2;
-    return carveCtx;
-  };
-  carveCtx.quadTo = (c, p) => {
-    let i = carveCtx._instructionIndex;
+      this._instructions[i + 3] = cBTransformed[0];
+      this._instructions[i + 4] = cBTransformed[1];
 
-    carveCtx._instructions[i] = instructionCodes.quadTo;
+      this._instructions[i + 5] = p[0];
+      this._instructions[i + 6] = p[1];
 
-    carveCtx._instructions[i + 1] = c[0];
-    carveCtx._instructions[i + 2] = c[1];
+      this._instructionIndex = i + 1 + 2 + 2 + 2;
+      return this;
+    },
+    quadTo: function (c, p) {
+      let i = this._instructionIndex;
 
-    carveCtx._instructions[i + 3] = p[0];
-    carveCtx._instructions[i + 4] = p[1];
+      this._instructions[i] = instructionCodes.quadTo;
 
-    carveCtx._instructionIndex = i + 1 + 2 + 2;
-    return carveCtx;
-  };
+      let cTransformed = this._applyTransform([], this.getCurrentTransform(), c);
+      let pTransformed = this._applyTransform([], this.getCurrentTransform(), p);
 
-  carveCtx.commit = (predicate) => {
+      this._instructions[i + 1] = cTransformed[0];
+      this._instructions[i + 2] = cTransformed[1];
 
-    let instructions = carveCtx._instructions;
-    let canvasCtx = carveCtx.canvasCtx;
-    let i = 0;
+      this._instructions[i + 3] = pTransformed[0];
+      this._instructions[i + 4] = pTransformed[1];
 
-    let op = () => {
-      while (i < carveCtx._instructionIndex) {
-        switch (carveCtx._instructions[i]) {
-          case instructionCodes.moveTo:
-            i += 1 + 2;
-            canvasCtx.moveTo(instructions[i + 1], instructions[i + 2]);
-            break;
-          case instructionCodes.lineTo:
-            i += 1 + 2;
-            canvasCtx.lineTo(instructions[i + 1], instructions[i + 2]);
-            break;
-          case instructionCodes.bezierTo:
-            i += 1 + 2 + 2 + 2;
-            canvasCtx.bezierCurveTo(
-              instructions[i + 1],
-              instructions[i + 2],
+      this._instructionIndex = i + 1 + 2 + 2;
+      return this;
+    },
 
-              instructions[i + 3],
-              instructions[i + 4],
+    commit: function (predicate) {
 
-              instructions[i + 5],
-              instructions[i + 6]);
-            break;
-          case instructionCodes.quadTo:
-            i += 1 + 2 + 2;
-            canvasCtx.quadraticCurveTo(
-              instructions[i + 1],
-              instructions[i + 2],
+      let pOut = [];
+      let cAOut = [];
+      let cBOut = [];
+      let instructions = this._instructions;
+      let canvasCtx = this.canvasCtx;
+      let i = 0;
 
-              instructions[i + 3],
-              instructions[i + 4]);
-            break;
-          default:
-            throw new Error('Bad carve context instruction code');
+      let op = () => {
+        while (i < this._instructionIndex) {
+          switch (this._instructions[i]) {
+            case instructionCodes.moveTo:
+              this._mapToCanvas(pOut, instructions.slice(i + 1, i + 3));
+
+              canvasCtx.moveTo(pOut[0], pOut[1]);
+              i += 1 + 2;
+              break;
+            case instructionCodes.lineTo:
+              this._mapToCanvas(pOut, instructions.slice(i + 1, i + 3));
+
+              canvasCtx.lineTo(pOut[0], pOut[1]);
+              i += 1 + 2;
+              break;
+            case instructionCodes.bezierTo:
+              this._mapToCanvas(cAOut, instructions.slice(i + 1, i + 3));
+              this._mapToCanvas(cBOut, instructions.slice(i + 3, i + 5));
+              this._mapToCanvas(pOut, instructions.slice(i + 5, i + 7));
+
+              canvasCtx.bezierCurveTo(
+                cAOut[0], cAOut[1],
+                cBOut[0], cBOut[1],
+                pOut[0], pOut[1]);
+              i += 1 + 2 + 2 + 2;
+              break;
+            case instructionCodes.quadTo:
+              this._mapToCanvas(cAOut, instructions.slice(i + 1, i + 3));
+              this._mapToCanvas(pOut, instructions.slice(i + 3, i + 5));
+
+              canvasCtx.quadraticCurveTo(
+                cAOut[0], cAOut[0],
+                pOut[0], pOut[1]);
+              i += 1 + 2 + 2;
+              break;
+            default:
+              throw new Error('Bad carve context instruction code');
+          }
         }
+        this._instructionIndex = 0;
+      };
+
+      if (typeof predicate === 'function') { predicate(canvasCtx, op); }
+      else op();
+
+      return this;
+    },
+
+    pushTransform: function (t) {
+      this._transformIndex += 1;
+
+      let transforms = this._transforms;
+      let index = this._transformIndex;
+
+      let nextTransform = transforms[index] ?
+        transforms[index] : [];
+      transforms[index] = this._mergeTransforms(nextTransform, transforms[index - 1], t);
+
+      return this;
+    },
+    popTransform: function () {
+      if (this._transformIndex > this._transformIndexLowerBound) {
+        this._transformIndex -= 1;
       }
-      carveCtx._instructionIndex = 0;
-    };
+      return this;
+    },
+    getCurrentTransform: function () {
+      return this._transforms[this._transformIndex];
+    },
 
-    if (typeof predicate === 'function') { predicate(canvasCtx, op); }
-    else op();
+    makeChild: function () {
+      let child = Object.create(this);
 
-    return carveCtx;
+      child._transforms = [this.getCurrentTransform()];
+      child._transformIndex = 0;
+      child._transformIndexLowerBound = 0;
+
+      child._instructions = [];
+      child._instructionIndex = 0;
+
+      return child;
+    },
+
+    render: function (predicate, carveCtx, state) {
+      let storeIndex = carveCtx._transformIndex;
+      let storeLowerBound = carveCtx._transformIndexLowerBound;
+      carveCtx._transformIndexLowerBound = storeIndex;
+
+      predicate(carveCtx, state);
+
+      carveCtx._transformIndex = storeIndex;
+      carveCtx._transformIndexLowerBound = storeLowerBound;
+
+      return this;
+    }
   };
+
+  let carveCtx = Object.create(carveRoot);
+
+  carveCtx.canvasCtx = canvasCtx;
+
+  carveCtx._transforms = [options.rootTransform];
+  carveCtx._transformIndex = 0;
+  carveCtx._transformIndexLowerBound = 0;
+
+  carveCtx._instructions = [];
+  carveCtx._instructionIndex = 0;
 
   return carveCtx;
 };
