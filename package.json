@@ -1,6 +1,6 @@
 {
   "name": "carvecanvas",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A 2D context dynamic path library",
   "repository": {
     "type": "git",

@@ -3,7 +3,11 @@
 
 import {originAxis as originAxisMapFunctions} from './coordinates.js';
 
+const sentinelString = '_@_carvecontext_@_';
+
 let isObj = (v) => v !== null && typeof v === 'object';
+
+let isCarveContext = (c) => c._sentinel === sentinelString;
 
 const instructionCodes = {
   moveTo: 0,
@@ -30,6 +34,7 @@ let carve = (srcCtx, options) => {
   options.rootTransform = options.rootTransform ? options.rootTransform : [0, 0];
 
   let carveRoot = {
+    get _sentinel(){ return sentinelString },
     _mapToCanvas: originAxisMapFunctions[options.originAxisType]([
       canvasCtx.canvas.width,
       canvasCtx.canvas.height
@@ -43,7 +48,7 @@ let carve = (srcCtx, options) => {
       return out;
     },
 
-    moveTo: function (p) {
+    moveTo: function (p = [0, 0]) {
       let i = this._instructionIndex;
 
       this._instructions[i] = instructionCodes.moveTo;
@@ -56,7 +61,7 @@ let carve = (srcCtx, options) => {
       this._instructionIndex = i + 1 + 2;
       return this;
     },
-    lineTo: function (p) {
+    lineTo: function (p = [0, 0]) {
       let i = this._instructionIndex;
 
       this._instructions[i] = instructionCodes.lineTo;
@@ -84,8 +89,8 @@ let carve = (srcCtx, options) => {
       this._instructions[i + 3] = cBTransformed[0];
       this._instructions[i + 4] = cBTransformed[1];
 
-      this._instructions[i + 5] = p[0];
-      this._instructions[i + 6] = p[1];
+      this._instructions[i + 5] = pTransformed[0];
+      this._instructions[i + 6] = pTransformed[1];
 
       this._instructionIndex = i + 1 + 2 + 2 + 2;
       return this;
@@ -187,7 +192,7 @@ let carve = (srcCtx, options) => {
       return this._transforms[this._transformIndex];
     },
 
-    makeChild: function () {
+    branch: function () {
       let child = Object.create(this);
 
       child._transforms = [this.getCurrentTransform()];
@@ -200,7 +205,23 @@ let carve = (srcCtx, options) => {
       return child;
     },
 
-    render: function (predicate, carveCtx, state) {
+    sequence: function (predicate) {
+      let carveCtx;
+      let state;
+
+      if(arguments[1] === undefined) {
+        carveCtx = this;
+      } else if(arguments[1] !== null && isCarveContext(arguments[1])) {
+        carveCtx = arguments[1];
+      } else {
+        state = arguments[1];
+        if(arguments[2] !== undefined && isCarveContext(arguments[2])){
+          carveCtx = arguments[2];
+        } else {
+          carveCtx = this;
+        }
+      }
+
       let storeIndex = carveCtx._transformIndex;
       let storeLowerBound = carveCtx._transformIndexLowerBound;
       carveCtx._transformIndexLowerBound = storeIndex;
