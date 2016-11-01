@@ -1,7 +1,7 @@
 // let carveCtx;
 // let shapeObj;
 
-import {originAxis as originAxisMapFunctions} from './coordinates.js';
+import { mapCoordinates } from './coordinates.js';
 
 const sentinelString = '_@_carvecontext_@_';
 
@@ -35,10 +35,7 @@ let carve = (srcCtx, options) => {
 
   let carveRoot = {
     get _sentinel(){ return sentinelString },
-    _mapToCanvas: originAxisMapFunctions[options.originAxisType]([
-      canvasCtx.canvas.width,
-      canvasCtx.canvas.height
-    ]),
+    _mapToCanvas: mapCoordinates([canvasCtx.canvas.width * 0.5, canvasCtx.canvas.height * 0.5]),
     _applyTransform: function (out, transform, p) {
       return this._mergeTransforms(out, transform, p);
     },

@@ -1,28 +1,88 @@
 "use strict";
 let expect = require('chai').expect;
 let _ = require('lodash');
-import {originAxis} from '../src/coordinates.js'
+import {mapCoordinates} from '../src/coordinates.js'
 
-let canvasSize = [200, 100];
+let calcRatio = (values) => { return (values[1] - values[0]) / (values[2] - values[1]); };
 
-let points = [[0, 0], [20, 0], [0, 20], [-20, 0], [0, -20], [10, 10], [-10, -10]];
+describe('Point Coordinate Manipulation', function () {
 
-describe('OriginAxis Coordinate system', function () {
+  it('should be a function', () => expect(mapCoordinates).to.be.a('function'));
 
-  it('should be an array', () => expect(originAxis).to.be.an('array'));
+  it('should return a function', () => expect(mapCoordinates()).to.be.a('function'));
 
-  it('should only contain functions',
-    () => expect(_.every(originAxis, (v) => _.isFunction(v))).to.be.true);
-
-  describe('Axis-Origin mapping function at index 0 (canvas center mapping)', function () {
-
-    it('should be a function', () => expect(originAxis[0](canvasSize)).to.be.a('function'));
-
-    it('should return an array if passed an array',
-      () => expect(originAxis[0](canvasSize)([], [0, 0])).to.be.an('array'));
-
-    it('should return an array that are half the canvasSize\'s width and height if passed an origin point ( [0, 0] )',
-      () => expect(originAxis[0](canvasSize)([], [0, 0])).to.eql([canvasSize[0] * 0.5, canvasSize[1] * 0.5]));
-
+  it('should return the offset value if passed [0, 0]', () => {
+    let offset = [100, 100];
+    let mapper = mapCoordinates(offset);
+    expect(mapper([], [0, 0])).to.deep.equal(offset);
   });
+
+  it('should transform the x value (index 0) linearly', () => {
+    let offset = [100, 100];
+    let points = [[0, 0], [10, 0], [20, 0]];
+    let origRatio = calcRatio(_.map(points, (p) => p[0]));
+
+    let mapper = mapCoordinates(offset);
+    let outPoints = _.map(points, (p) => mapper([], p));
+    expect(calcRatio(_.map(outPoints, (p) => p[0]))).to.equal(origRatio);
+  });
+
+  it('should transform the y value (index 1) linearly', () => {
+    let offset = [100, 100];
+    let points = [[0, 0], [0, 20], [0, 40]];
+    let origRatio = calcRatio(_.map(points, (p)=>p[1]));
+
+    let mapper = mapCoordinates(offset);
+    let outPoints = _.map(points, (p) => mapper([], p));
+    expect(calcRatio(_.map(outPoints, (p) => p[1]))).to.equal(origRatio);
+  });
+
+  it('should be able retain the x relative magnitude value', () => {
+    let mapper = mapCoordinates([100, 100], false);
+
+    let pointA = [10, 0];
+    let pointB = [20, 0];
+
+    let outputA = mapper([], pointA);
+    let outputB = mapper([], pointB);
+
+    expect(outputA[0]).to.be.lessThan(outputB[0]);
+  });
+
+  it('should be able flip the x relative magnitude value', () => {
+    let mapper = mapCoordinates([100, 100], true);
+
+    let pointA = [10, 0];
+    let pointB = [20, 0];
+
+    let outputA = mapper([], pointA);
+    let outputB = mapper([], pointB);
+
+    expect(outputB[0]).to.be.lessThan(outputA[0]);
+  });
+
+  it('should be able to retain the y relative magnitude value', () => {
+    let mapper = mapCoordinates([100, 100], false, false);
+
+    let pointA = [0, 10];
+    let pointB = [0, 20];
+
+    let outputA = mapper([], pointA);
+    let outputB = mapper([], pointB);
+
+    expect(outputA[1]).to.be.lessThan(outputB[1]);
+  });
+
+  it('should be able to flip the y relative magnitude value', () => {
+    let mapper = mapCoordinates([100, 100], false, true);
+
+    let pointA = [0, 10];
+    let pointB = [0, 20];
+
+    let outputA = mapper([], pointA);
+    let outputB = mapper([], pointB);
+
+    expect(outputB[1]).to.be.lessThan(outputA[1]);
+  });
+
 });
