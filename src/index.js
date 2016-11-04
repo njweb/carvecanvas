@@ -187,6 +187,20 @@ let carve = (srcCtx, options) => {
 
       return this;
     },
+    pushGlobalTransform: function (t) {
+      this._transformIndex += 1;
+
+      let transforms = this._transforms;
+      let index = this._transformIndex;
+
+      let nextTransform = transforms[index] ?
+        transforms[index] : [];
+
+      nextTransform[0] = t[0];
+      nextTransform[1] = t[1];
+      transforms[index] = nextTransform;
+      return this;
+    },
     popTransform: function () {
       if (this._transformIndex > this._transformIndexLowerBound) {
         this._transformIndex -= 1;
