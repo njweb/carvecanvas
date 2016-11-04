@@ -66,7 +66,7 @@ carveCtx
 
    And now, we can break our paths up into sequences that can be chained together
    
-```
+```javascript
 import carve from 'carve-canvas'
 let canvasCtx = document.querySelector('#my-canvas').getContext('2d');
 let carveCtx = carve(canvasCtx);
