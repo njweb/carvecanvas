@@ -29,13 +29,21 @@ let validateCanvasCtxArgument = (canvasCtx) => {
 let carve = (srcCtx, options) => {
   let canvasCtx = validateCanvasCtxArgument(srcCtx);
 
-  options = options ? Object.create(options) : {};
-  options.originAxisType = options.originAxisType ? options.originAxisType : 0;
-  options.rootTransform = options.rootTransform ? options.rootTransform : [0, 0];
+  // options = options ? Object.create(options) : {};
+  // options.originOffset = options.originOffset ? options.originOffset :
+  //   [canvasCtx.canvas.width * 0.5, canvasCtx.canvas.height * 0.5];
+  // options.flipX = options.flipX === true; //default false
+  // options.flipY = options.flipY !== false; //default true
+  options = Object.assign({}, {
+    rootTransform: [0, 0],
+    originOffset: [canvasCtx.canvas.width * 0.5, canvasCtx.canvas.height * 0.5],
+    flipX: false,
+    flipY: true
+  }, options );
 
   let carveRoot = {
     get _sentinel(){ return sentinelString },
-    _mapToCanvas: mapCoordinates([canvasCtx.canvas.width * 0.5, canvasCtx.canvas.height * 0.5]),
+    _mapToCanvas: mapCoordinates(options.originOffset, options.flipX, options.flipY),
     _applyTransform: function (out, transform, p) {
       return this._mergeTransforms(out, transform, p);
     },
@@ -150,7 +158,7 @@ let carve = (srcCtx, options) => {
               this._mapToCanvas(pOut, instructions.slice(i + 3, i + 5));
 
               canvasCtx.quadraticCurveTo(
-                cAOut[0], cAOut[0],
+                cAOut[0], cAOut[1],
                 pOut[0], pOut[1]);
               i += 1 + 2 + 2;
               break;
