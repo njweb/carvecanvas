@@ -4,6 +4,7 @@ import {carve} from '../src/index.js';
 import {canvasRenderingContext2DMock} from './canvasRenderingContext2D.mock.js';
 
 let mockCanvasCtx2D = canvasRenderingContext2DMock();
+let addPoints = (a, b) => [a[0] + b[0], a[1] + b[1]];
 
 describe('Carve', () => {
 
@@ -54,14 +55,17 @@ describe('Carve', () => {
 
       it('should transform the passed in point with the current transformation', () => {
         let ctx = carve(mockCanvasCtx2D);
-        let point = [-10, -10];
-        ctx.moveTo(point)
-          .pushTransform([10, 10])
+        let point = [10, 10];
+        let offset = [20, 20];
+        let target = addPoints(point, offset);
+
+        ctx.moveTo(target)
+          .pushTransform(offset)
           .moveTo(point)
           .commit();
 
         let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].point).to.not.deep.equal(storage[0].point);
+        expect(storage[1].point).to.deep.equal(storage[0].point);
       });
 
     });
@@ -85,13 +89,15 @@ describe('Carve', () => {
       it('should transform the passed in point with the current transformation', () => {
         let ctx = carve(mockCanvasCtx2D);
         let point = [-10, 10];
-        ctx.lineTo(point)
-          .pushTransform([10, 10])
+        let offset = [-20, 20];
+        let target = addPoints(point, offset);
+        ctx.lineTo(target)
+          .pushTransform(offset)
           .lineTo(point)
           .commit();
 
         let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].point).to.not.deep.equal(storage[0].point);
+        expect(storage[1].point).to.deep.equal(storage[0].point);
       });
 
     });
@@ -107,16 +113,18 @@ describe('Carve', () => {
       it('should transform all passed in points with the current transformation', () => {
         let ctx = carve(mockCanvasCtx2D);
         let points = [[10, 10], [20, 10], [30, 0]];
-        ctx.bezierTo.apply(ctx, points);
-        ctx.pushTransform([10, 10]);
-        ctx.bezierTo.apply(ctx, points);
-        ctx.commit();
+        let offset = [-10, 10];
+        let targets = _.map(points, (p) => addPoints(p, offset));
 
-        _.forOwn(mockCanvasCtx2D.storage[0], (v, k) => {
-          if(k !== 'type'){
-            expect(mockCanvasCtx2D.storage[1][k]).to.not.deep.equal(v);
-          }
-        });
+        ctx.bezierTo.apply(ctx, targets)
+          .pushTransform(offset)
+          .bezierTo.apply(ctx, points)
+          .commit();
+
+        let storage = mockCanvasCtx2D.storage;
+        expect(storage[1].controlA).to.deep.equal(storage[0].controlA);
+        expect(storage[1].controlB).to.deep.equal(storage[0].controlB);
+        expect(storage[1].point).to.deep.equal(storage[0].point);
       });
 
     });
@@ -132,17 +140,16 @@ describe('Carve', () => {
       it('should transform all passed in points with the current transformation', () => {
         let ctx = carve(mockCanvasCtx2D);
         let points = [[10, 10], [20, 10]];
-        ctx.quadTo.apply(ctx, points)
-          .pushTransform([10, 10])
+        let offset = [10, -20];
+        let targets = _.map(points, (p) => addPoints(p, offset));
+        ctx.quadTo.apply(ctx, targets)
+          .pushTransform(offset)
           .quadTo.apply(ctx, points)
           .commit();
 
-        _.forOwn(mockCanvasCtx2D.storage[0], (v, k) => {
-          if(k !== 'type'){
-            expect(mockCanvasCtx2D.storage[1][k]).to.not.deep.equal(v);
-          }
-        });
-
+        let storage = mockCanvasCtx2D.storage;
+        expect(storage[1].control).to.deep.equal(storage[0].control);
+        expect(storage[1].point).to.deep.equal(storage[0].point);
       });
 
     });
@@ -260,59 +267,76 @@ describe('Carve', () => {
       mockCanvasCtx2D.reset();
     });
 
-    it('should have a pushTransform function', () => {
-      expect(carve(mockCanvasCtx2D).pushTransform).to.be.a('function');
+    describe('Push Transform', () => {
+
+      it('should exist', () => {
+        expect(carve(mockCanvasCtx2D).pushTransform).to.be.a('function');
+      });
+
+      it('should return the carve context it was called on', () => {
+        let ctx = carve(mockCanvasCtx2D);
+        let result = ctx.pushTransform([10, 10]);
+
+        expect(result).to.equal(ctx);
+      });
+
+      it('should be able to apply multiple pushed transforms in sequence', () => {
+        let ctx = carve(mockCanvasCtx2D);
+        let point = [10, 10];
+        let offsetA = [-20, 40];
+        let offsetB = [5, -10];
+        let target = addPoints(offsetB, addPoints(offsetA, point));
+
+        ctx.moveTo(target)
+          .pushTransform(offsetA)
+          .pushTransform(offsetB)
+          .moveTo(point)
+          .commit();
+
+        let storage = mockCanvasCtx2D.storage;
+        expect(storage[1].point).to.deep.equal(storage[0].point);
+      });
+
     });
 
-    it('should apply pushed transform information to points passed to the moveTo function', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.moveTo([0, 0]).commit();
-      let reference = mockCanvasCtx2D.storage[0].point;
+    describe('Pop Transform', () => {
 
-      mockCanvasCtx2D.reset();
-      ctx.pushTransform([10, 10]).moveTo([0, 0]).commit();
-      expect(mockCanvasCtx2D.storage[0].point).to.not.deep.equal(reference);
-    });
+      it('should have a popTransform function', () => {
+        expect(carve(mockCanvasCtx2D).popTransform).to.be.a('function');
+      });
 
-    it('should be able to apply multiple pushed transforms in sequence', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      let zeroPoint = [0, 0];
+      it('should be able to use popTransform to remove an applied transform', () => {
+        let ctx = carve(mockCanvasCtx2D);
+        let point = [5, 5];
+        let offset = [30, 40];
+        let target = addPoints(point, offset);
 
-      ctx.pushTransform([10, 10]).moveTo(zeroPoint).pushTransform([10, 10]).moveTo(zeroPoint).commit();
+        ctx.moveTo(target)
+          .pushTransform(offset)
+          .pushTransform([100, 100])
+          .popTransform()
+          .moveTo(point)
+          .commit();
 
-      let first = mockCanvasCtx2D.storage[0].point;
-      let second = mockCanvasCtx2D.storage[1].point;
-      expect(first).to.not.deep.equal(second);
-    });
+        let storage = mockCanvasCtx2D.storage;
+        expect(storage[1].point).to.deep.equal(storage[0].point);
+      });
 
-    it('should have a popTransform function', () => {
-      expect(carve(mockCanvasCtx2D).popTransform).to.be.a('function');
-    });
+      it('should be able to popTransform repeatedly to no effect if there are no more transforms to remove', () => {
+        let ctx = carve(mockCanvasCtx2D);
+        let zeroPoint = [0, 0];
 
-    it('should be able to use popTransform to remove an applied transform', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      let zeroPoint = [0, 0];
+        ctx.moveTo(zeroPoint).pushTransform([10, 10]).popTransform().popTransform().moveTo(zeroPoint).commit();
 
-      ctx.moveTo(zeroPoint).pushTransform([10, 10]).moveTo(zeroPoint).popTransform().moveTo(zeroPoint).commit();
+        let storage = mockCanvasCtx2D.storage;
+        expect(storage[0].point).to.deep.equal(storage[1].point);
+      });
 
-      let storage = mockCanvasCtx2D.storage;
-      expect(storage[0].point).to.not.deep.equal(storage[1].point);
-      expect(storage[0].point).to.deep.equal(storage[2].point);
-    });
-
-    it('should be able to popTransform repeatedly to no effect if there are no more transforms to remove', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      let zeroPoint = [0, 0];
-
-      ctx.moveTo(zeroPoint).pushTransform([10, 10]).popTransform().popTransform().moveTo(zeroPoint).commit();
-
-      let storage = mockCanvasCtx2D.storage;
-      expect(storage[0].point).to.deep.equal(storage[1].point);
     });
 
     describe('Push Global Transform', () => {
 
-      it('should have a pushGlobalTransform function', () => {
+      it('should exist', () => {
         expect(carve(mockCanvasCtx2D)).to.respondTo('pushGlobalTransform');
       });
 
