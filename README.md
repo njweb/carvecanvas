@@ -7,6 +7,7 @@
 ## Examples
 
    A simple example
+   
    **Note: Within this library 2D vectors are expected as two element arrays, so \[x, y\]**
 
 ```javascript
