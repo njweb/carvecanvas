@@ -1,7 +1,7 @@
 {
   "name": "carvecanvas",
   "version": "0.2.1",
-  "description": "A 2D context dynamic path library",
+  "description": "A html canvas 2D context dynamic path rendering library",
   "repository": {
     "type": "git",
     "url": "https://github.com/njweb/carvecanvas"
