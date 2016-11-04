@@ -310,6 +310,31 @@ describe('Carve', () => {
       expect(storage[0].point).to.deep.equal(storage[1].point);
     });
 
+    describe('Push Global Transform', () => {
+
+      it('should have a pushGlobalTransform function', () => {
+        expect(carve(mockCanvasCtx2D)).to.respondTo('pushGlobalTransform');
+      });
+
+      it('should return the carve context object', () => {
+        let ctx = carve(mockCanvasCtx2D);
+        let result = ctx.pushGlobalTransform([10, 10]);
+        expect(result).to.equal(ctx);
+      });
+
+      it('should set the passed transform value as the current global transform', () => {
+        let ctx = carve(mockCanvasCtx2D);
+        ctx.moveTo()
+          .pushTransform([10, 10])
+          .pushGlobalTransform([0, 0])
+          .moveTo().commit();
+
+        let storage = mockCanvasCtx2D.storage;
+        expect(storage[1].point).to.deep.equal(storage[0].point);
+      });
+
+    });
+
   });
 
   describe('Sequence', () => {
