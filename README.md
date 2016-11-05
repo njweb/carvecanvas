@@ -89,7 +89,7 @@ carveCtx.pushTransform([-40, 0])
                 .lineTo([-10, 0]);
         });
         
-        // When we exit from a sequence, our transform is right where we left it.
+        // When we return from a sequence, our transform is right where we left it.
         seqCtx.lineTo([0, -10]);
     })
 ```
