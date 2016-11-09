@@ -1,6 +1,8 @@
 let expect = require('chai').expect;
 let _ = require('lodash');
-import {carve} from '../src/index.js';
+import {carve, sequence, instructor} from '../src/index';
+import {apply as applyTransform} from '../src/transform';
+import {instructionCodes} from '../src/codes'
 import {canvasRenderingContext2DMock} from './canvasRenderingContext2D.mock.js';
 
 let mockCanvasCtx2D = canvasRenderingContext2DMock();
@@ -8,473 +10,500 @@ let addPoints = (a, b) => [a[0] + b[0], a[1] + b[1]];
 
 describe('Carve', () => {
 
-  it('should be a function', () => expect(carve).to.be.a('function'));
-
-  it('should throw an error if the first argument is not an object', () => {
-    expect(carve).to.throw(TypeError);
-    expect(carve.bind(null, 5)).to.throw(TypeError);
-    expect(carve.bind(null, 'abc')).to.throw(TypeError);
+  it('should be an object', () => {
+    expect(carve).to.be.an('object');
   });
 
-  it('should throw a TypeError if the first argument "canvas" key does not have a "width" property',
-    () => expect(carve.bind({canvas: {height: 10}})).to.throw(TypeError));
-
-  it('should throw a TypeError if the first argument "canvas" key does not have a "height" property',
-    () => expect(carve.bind(null, {canvas: {width: 10}})).to.throw(TypeError));
-
-  it('should thow a TypeError if the first argument "canvas.width" path\'s value is not an integer',
-    () => expect(carve.bind(null, {canvas: {width: 1.2, height: 10}})).to.throw(TypeError));
-
-  it('should throw a TypeError if the first argument "canvas.height" path\'s value is not an integer',
-    () => expect(carve.bind(null, {canvas: {width: 10, height: 10.5}})).to.throw(TypeError));
-
-  it('should return an object',
-    () => expect(carve.call(null, mockCanvasCtx2D)).to.be.an('object'));
-
-  describe('Path Methods', () => {
-
-    beforeEach(() => {
-      mockCanvasCtx2D.reset();
-    });
-
-    describe('moveTo', () => {
-
-      it('should return the original carve context object', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let out = ctx.moveTo([0, 0]);
-        expect(out).to.equal(ctx);
-      });
-
-      it('should apply the point [0, 0] if no point argument is supplied', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        ctx.moveTo([0, 0]).moveTo().commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[0].point).to.deep.equal(storage[1].point);
-      });
-
-      it('should transform the passed in point with the current transformation', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let point = [10, 10];
-        let offset = [20, 20];
-        let target = addPoints(point, offset);
-
-        ctx.moveTo(target)
-          .pushTransform(offset)
-          .moveTo(point)
-          .commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].point).to.deep.equal(storage[0].point);
-      });
-
-    });
-
-    describe('lineTo', () => {
-
-      it('lineTo should return the original carve context object', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let out = ctx.lineTo([0, 0]);
-        expect(out).to.equal(ctx);
-      });
-
-      it('should apply the point [0, 0] if no point argument is supplied', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        ctx.lineTo([0, 0]).lineTo().commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[0].point).to.deep.equal(storage[1].point);
-      });
-
-      it('should transform the passed in point with the current transformation', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let point = [-10, 10];
-        let offset = [-20, 20];
-        let target = addPoints(point, offset);
-        ctx.lineTo(target)
-          .pushTransform(offset)
-          .lineTo(point)
-          .commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].point).to.deep.equal(storage[0].point);
-      });
-
-    });
-
-    describe('bezierTo', () => {
-
-      it('should return the original carve context object', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let out = ctx.bezierTo([0, 0], [10, 10], [20, 0]);
-        expect(out).to.equal(ctx);
-      });
-
-      it('should transform all passed in points with the current transformation', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let points = [[10, 10], [20, 10], [30, 0]];
-        let offset = [-10, 10];
-        let targets = _.map(points, (p) => addPoints(p, offset));
-
-        ctx.bezierTo.apply(ctx, targets)
-          .pushTransform(offset)
-          .bezierTo.apply(ctx, points)
-          .commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].controlA).to.deep.equal(storage[0].controlA);
-        expect(storage[1].controlB).to.deep.equal(storage[0].controlB);
-        expect(storage[1].point).to.deep.equal(storage[0].point);
-      });
-
-    });
-
-    describe('quadTo', () => {
-
-      it('should return the original carve context object', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let out = ctx.quadTo([10, 10], [20, 0]);
-        expect(out).to.equal(ctx);
-      });
-
-      it('should transform all passed in points with the current transformation', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let points = [[10, 10], [20, 10]];
-        let offset = [10, -20];
-        let targets = _.map(points, (p) => addPoints(p, offset));
-        ctx.quadTo.apply(ctx, targets)
-          .pushTransform(offset)
-          .quadTo.apply(ctx, points)
-          .commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].control).to.deep.equal(storage[0].control);
-        expect(storage[1].point).to.deep.equal(storage[0].point);
-      });
-
-    });
-
+  it('should have a function sequence', () => {
+    expect(carve).to.respondTo('sequence');
   });
 
-  describe('Commit', () => {
-
-    beforeEach(() => {
-      mockCanvasCtx2D.reset();
-    });
-
-    it('should return the orignal carve context object', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      let out = ctx.commit();
-      expect(out).to.equal(ctx);
-    });
-
-    it('should apply a stored moveTo instruction to the stored canvas context object', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.moveTo([10, 10]).commit();
-      expect(mockCanvasCtx2D.storage).not.to.be.empty;
-      expect(mockCanvasCtx2D.storage[0].type).to.equal('moveTo');
-    });
-
-    it('should apply a stored lineTo instruction to the stored canvas context object', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.lineTo([10, 10]).commit();
-      expect(mockCanvasCtx2D.storage).not.to.be.empty;
-      expect(mockCanvasCtx2D.storage[0].type).to.equal('lineTo');
-    });
-
-    it('should apply a stored bezierTo instruction to the stored canvas context object', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.bezierTo([0, 4], [4, 8], [10, 10]).commit();
-      expect(mockCanvasCtx2D.storage).not.to.be.empty;
-      expect(mockCanvasCtx2D.storage[0].type).to.equal('bezierCurveTo');
-    });
-
-    it('should apply a stored quadTo instruction to the stored canvas context object', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.quadTo([4, 4], [10, 10]).commit();
-      expect(mockCanvasCtx2D.storage).not.to.be.empty;
-      expect(mockCanvasCtx2D.storage[0].type).to.equal('quadraticCurveTo');
-    });
-
-    it('should be able to apply a sequence of instructions to the stored canvas context object', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.moveTo([10, 10])
-        .lineTo([20, 20])
-        .bezierTo([-10, 20], [0, 40], [10, 50])
-        .quadTo([10, 10], [20, 20])
-        .lineTo([0, 0])
-        .commit();
-      expect(mockCanvasCtx2D.storage.length).to.equal(5);
-      expect(mockCanvasCtx2D.storage[0].type).to.equal('moveTo');
-      expect(mockCanvasCtx2D.storage[1].type).to.equal('lineTo');
-      expect(mockCanvasCtx2D.storage[2].type).to.equal('bezierCurveTo');
-      expect(mockCanvasCtx2D.storage[3].type).to.equal('quadraticCurveTo');
-      expect(mockCanvasCtx2D.storage[4].type).to.equal('lineTo');
-    });
-
-    it('should call a passed predicate', () => {
-      let wasCalled = false;
-      let predicate = () => wasCalled = true;
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.moveTo([10, 10]).lineTo([20, 20]).commit(predicate);
-      expect(wasCalled).to.equal.true;
-    });
-
-    it('should provide the predicate with the original CanvasRenderingContext2D object as ' +
-      'the first argument', () => {
-      let predicate = (arg0) => expect(arg0).to.equal(mockCanvasCtx2D);
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.moveTo([10, 10]).commit(predicate);
-    });
-
-    it('should provide the predicate with a function as the second argument', () => {
-      let predicate = (arg0, arg1) => expect(arg1).to.be.a('function');
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.moveTo([-10, -10]).commit(predicate);
-    });
-
-    it('should execute the CanvasRenderingContext2D instructions when the function at ' +
-      'arguments[1] is called', () => {
-      let predicate = (canvasCtx, exe) => {
-        expect(mockCanvasCtx2D.storage).to.be.empty;
-        exe();
-        expect(mockCanvasCtx2D.storage).to.not.be.empty;
-      };
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.moveTo([10, 10]).commit(predicate);
-    });
-
+  it('should respond to instructions', () => {
+    expect(carve).to.respondTo('instructor');
   });
 
-  describe('Map To Canvas Coordinates', () => {
+});
 
-    beforeEach(() => {
-      mockCanvasCtx2D.reset();
-    });
+describe('Sequence', () => {
 
-    it('should transform input points to canvas coordinates during the commit process', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      let expectedPoint = [mockCanvasCtx2D.canvas.width * 0.5, mockCanvasCtx2D.canvas.height * 0.5];
-      ctx.moveTo([0, 0]).commit();
-      expect(mockCanvasCtx2D.storage[0].point).to.deep.equal(expectedPoint);
-    });
-
+  it('should throw a TypeError if predicate is not a function', () => {
+    expect(sequence).to.throw(TypeError);
   });
 
-  describe('Transform', () => {
+  describe('Context Object', () => {
 
-    beforeEach(() => {
-      mockCanvasCtx2D.reset();
+    describe('Get Transform', () => {
+      it('should return the current transform', () => {
+        let transformA = [40, 60];
+        let transformB = [-4, 2];
+        sequence((ctx) => {
+          ctx.pushTransform(transformA)
+            .pushTransform(transformB);
+          expect(ctx.getTransform([])).to.deep.equal(addPoints(transformA, transformB));
+        });
+      });
     });
 
     describe('Push Transform', () => {
-
-      it('should exist', () => {
-        expect(carve(mockCanvasCtx2D).pushTransform).to.be.a('function');
+      it('should return the sequence context', () => {
+        sequence((ctx) => {expect(ctx.pushTransform([0, 0])).to.equal(ctx);});
       });
-
-      it('should return the carve context it was called on', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let result = ctx.pushTransform([10, 10]);
-
-        expect(result).to.equal(ctx);
+      it('should set the current transform', () => {
+        let transform = [10, 20];
+        sequence((ctx) => {
+          ctx.pushTransform(transform);
+          expect(ctx.getTransform([])).to.deep.equal(transform);
+        });
       });
-
-      it('should be able to apply multiple pushed transforms in sequence', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let point = [10, 10];
-        let offsetA = [-20, 40];
-        let offsetB = [5, -10];
-        let target = addPoints(offsetB, addPoints(offsetA, point));
-
-        ctx.moveTo(target)
-          .pushTransform(offsetA)
-          .pushTransform(offsetB)
-          .moveTo(point)
-          .commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].point).to.deep.equal(storage[0].point);
-      });
-
-    });
-
-    describe('Pop Transform', () => {
-
-      it('should have a popTransform function', () => {
-        expect(carve(mockCanvasCtx2D).popTransform).to.be.a('function');
-      });
-
-      it('should be able to use popTransform to remove an applied transform', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let point = [5, 5];
-        let offset = [30, 40];
-        let target = addPoints(point, offset);
-
-        ctx.moveTo(target)
-          .pushTransform(offset)
-          .pushTransform([100, 100])
-          .popTransform()
-          .moveTo(point)
-          .commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].point).to.deep.equal(storage[0].point);
-      });
-
-      it('should be able to popTransform repeatedly to no effect if there are no more transforms to remove', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let zeroPoint = [0, 0];
-
-        ctx.moveTo(zeroPoint).pushTransform([10, 10]).popTransform().popTransform().moveTo(zeroPoint).commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[0].point).to.deep.equal(storage[1].point);
-      });
-
     });
 
     describe('Push Global Transform', () => {
-
-      it('should exist', () => {
-        expect(carve(mockCanvasCtx2D)).to.respondTo('pushGlobalTransform');
+      it('should return the sequence context', () => {
+        sequence((ctx) => {
+          expect(ctx.pushGlobalTransform([5, 10])).to.equal(ctx);
+        });
       });
-
-      it('should return the carve context object', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        let result = ctx.pushGlobalTransform([10, 10]);
-        expect(result).to.equal(ctx);
+      it('should overwrite the current transform value', () => {
+        let globalTransform = [-20, 80];
+        sequence((ctx) => {
+          ctx.pushTransform([2, 10])
+            .pushTransform([-30, -20])
+            .pushGlobalTransform(globalTransform);
+          expect(ctx.getTransform([])).to.deep.equal(globalTransform);
+        });
       });
+    });
 
-      it('should set the passed transform value as the current global transform', () => {
-        let ctx = carve(mockCanvasCtx2D);
-        ctx.moveTo()
-          .pushTransform([10, 10])
-          .pushGlobalTransform([0, 0])
-          .moveTo().commit();
-
-        let storage = mockCanvasCtx2D.storage;
-        expect(storage[1].point).to.deep.equal(storage[0].point);
+    describe('Pop Transform', () => {
+      it('should return the sequence context', () => {
+        sequence((ctx) => { expect(ctx.popTransform()).to.equal(ctx); });
       });
+      it('should return the sequence context object', () => {
+        sequence((ctx) => {
+          expect(ctx.popTransform()).to.equal(ctx);
+        });
+      });
+      it('should remove the last pushed transform', () => {
+        sequence((ctx) => {
+          let transform = [9, -10];
+          ctx.pushTransform(transform)
+            .pushTransform([5, 5])
+            .popTransform();
+          expect(ctx.getTransform([])).to.deep.equal(transform);
+        });
+      });
+    });
 
+    describe('Move To', () => {
+      it('should return the sequence context', () => {
+        sequence((ctx) => {
+          expect(ctx.moveTo([0, 0])).to.equal(ctx);
+        });
+      });
+      it('should push the moveTo code to the returned instruction array', () => {
+        let result = sequence((ctx) => {ctx.moveTo([0, 0])});
+        expect(result[0]).to.equal(instructionCodes.moveTo);
+      });
+      it('should push the point value to the returned instruction array', () => {
+        let point = [10, 20];
+        let result = sequence((ctx) => {ctx.moveTo(point)});
+        expect(result.slice(1, 3)).to.deep.equal(point);
+      });
+      it('should offset the point with the current transform', () => {
+        let point = [5, -5];
+        let transform = [20, 25];
+        let result = sequence((ctx) => {ctx.pushTransform(transform).moveTo(point)});
+        expect(result.slice(1, 3)).to.deep.equal(applyTransform([], transform, point));
+      });
+    });
+
+    describe('Line To', () => {
+      it('should return the sequence context', () => {
+        sequence((ctx) => {expect(ctx.lineTo([0, 0])).to.equal(ctx);});
+      });
+      it('should push the lineTo code to the returned instruction array', () => {
+        let result = sequence((ctx) => {ctx.lineTo([0, 0]);});
+        expect(result[0]).to.equal(instructionCodes.lineTo);
+      });
+      it('should push the point value to the returned instruction array', () => {
+        let point = [10, 20];
+        let result = sequence((ctx) => {ctx.lineTo(point)});
+        expect(result.slice(1, 3)).to.deep.equal(point);
+      });
+      it('should offset the point with the current transform', () => {
+        let point = [5, -5];
+        let transform = [20, 25];
+        let result = sequence((ctx) => {ctx.pushTransform(transform).lineTo(point)});
+        expect(result.slice(1, 3)).to.deep.equal(applyTransform([], transform, point));
+      });
+    });
+
+    describe('Quad To', () => {
+      it('should return the sequence context', () => {
+        sequence((ctx) => {expect(ctx.quadTo([0, 0], [0, 0])).to.equal(ctx);});
+      });
+      it('should push the quadTo code to the returned instruction array', () => {
+        let result = sequence((ctx) => {ctx.quadTo([0, 0], [0, 0])});
+        expect(result[0]).to.equal(instructionCodes.quadTo);
+      });
+      it('should push the control & point value to the returned instruction array', () => {
+        let control = [5, 10];
+        let point = [20, -10];
+        let result = sequence((ctx) => {ctx.quadTo(control, point);});
+        expect(result.slice(1, 1 + 2 + 2)).to.deep.equal([].concat(control, point));
+      });
+      it('should offset the control & point with the current transform', () => {
+        let control = [30, 32];
+        let point = [12, -4];
+        let transform = [-8, 10];
+        let result = sequence((ctx) => {ctx.pushTransform(transform).quadTo(control, point)});
+        expect(result.slice(1, 1 + 2 + 2)).to.deep
+          .equal([].concat(applyTransform([], transform, control), applyTransform([], transform, point)));
+      });
+    });
+
+    describe('Bezier To', () => {
+      it('should return the sequence context', () => {
+        sequence((ctx) => {expect(ctx.bezierTo([0, 0], [0, 0], [0, 0])).to.equal(ctx);});
+      });
+      it('should push the bezierTo code to the returned instruction array', () => {
+        let result = sequence((ctx) => {ctx.bezierTo([0, 0], [0, 0], [0, 0]);});
+        expect(result[0]).to.equal(instructionCodes.bezierTo);
+      });
+      it('should push the control & point value to the returned instruction array', () => {
+        let controlA = [5, 9];
+        let controlB = [12, 30];
+        let point = [14, 0];
+        let result = sequence((ctx) => {ctx.bezierTo(controlA, controlB, point)});
+        expect(result.slice(1, 1 + 2 + 2 + 2)).to.deep
+          .equal([].concat(controlA, controlB, point));
+      });
+      it('should offset the control & point with the current transform', () => {
+        let controlA = [5, 9];
+        let controlB = [12, 30];
+        let point = [14, 0];
+        let transform = [-10, -5];
+        let result = sequence((ctx) => {ctx.pushTransform(transform).bezierTo(controlA, controlB, point)});
+        expect(result.slice(1, 1 + 2 + 2 + 2)).to.deep
+          .equal([].concat(
+            applyTransform([], transform, controlA),
+            applyTransform([], transform, controlB),
+            applyTransform([], transform, point)));
+      });
+    });
+
+    describe('Sequence', () => {
+      it('should return the sequence context', () => {
+        sequence((ctx) => {
+          expect(ctx.sequence(() => {})).to.equal(ctx);
+        });
+      });
+      it('should execute the passed predicate', () => {
+        let wasExecuted = false;
+        let check = () => {wasExecuted = true;};
+        sequence((ctx) => {ctx.sequence(check);});
+        expect(wasExecuted).to.be.true;
+      });
+      it('should pass the sequence context to the predicate', () => {
+        let storedCtx;
+        sequence((ctx) => {
+          storedCtx = ctx;
+          ctx.sequence((ctx) => {expect(ctx).to.equal(storedCtx); });
+        });
+      });
+      it('should pass the state argument provided to the original sequence call to the predicate', () => {
+        let original = {a: 5};
+        sequence((ctx, state)=> {
+          ctx.sequence((ctx, state) => {expect(state).to.equal(original); }, state);
+        }, original);
+      });
+      it('should prevent the popping of transforms past where the transform stack ' +
+        'was when sequence was called', () => {
+        let transform = [10, 20];
+        let point = [5, -5];
+        let result = sequence((ctx) => {
+          ctx.pushTransform(transform)
+            .sequence((ctx) => {ctx.popTransform();})
+            .moveTo(point);
+        });
+        expect(result.slice(1, 3)).to.deep.equal(addPoints(transform, point));
+      });
+    });
+
+    describe('Commit', () => {
+      it('should throw a type error if no instructor was supplied in the configuration', () => {
+        sequence((ctx) => {
+          expect(ctx.commit).to.throw(TypeError);
+        });
+      });
+      describe('When Provided an Instructor', () => {
+        let myInstructor;
+        beforeEach(() => {
+          myInstructor = instructor(mockCanvasCtx2D, (out, p) => {
+            out[0] = p[0];
+            out[1] = p[1];
+            return out;
+          });
+          mockCanvasCtx2D.reset();
+        });
+
+        it('should commit the instructions to the provided instructor', () => {
+          let point = [20, 10];
+          sequence((ctx) => {
+            ctx.moveTo(point)
+              .commit();
+          }, {}, {instructor: myInstructor});
+
+          expect(mockCanvasCtx2D.storage[0].type).to.equal('moveTo');
+          expect(mockCanvasCtx2D.storage[0].point).to.deep.equal(point);
+        });
+        it('should call a provided predicate function', () => {
+          let wasCalled = false;
+          let predicate = () => {wasCalled = true;};
+          sequence((ctx) => {
+            ctx.commit(predicate);
+          }, {}, {instructor: myInstructor});
+          expect(wasCalled).to.be.true;
+        });
+        it('should provide the canvas context object to a predicate function', () => {
+          let predicate = () => {wasCalled = true;};
+          sequence((ctx) => {
+            ctx.commit((canvasCtx) => {
+              expect(canvasCtx).to.equal(mockCanvasCtx2D);
+            });
+          }, {}, {instructor: myInstructor});
+        });
+      });
+    });
+
+    describe('Branch', () => {
+      it('should return a new sequence context', () => {
+        sequence((ctx) => {
+          expect(ctx.branch()).to.not.equal(ctx);
+        });
+      });
+      sequence((ctx) => {
+        _.forIn(ctx, (v, k) => {
+          if(typeof v === 'function') {
+            it('should have the function ' + k + ' on the new sequence context', () => {
+              sequence((ctx) => {
+                expect(ctx.branch()[k]).to.be.a('function');
+              });
+            });
+          }
+        });
+      });
+      it('should have an instruction array', () => {
+        sequence((ctx) => {
+          expect(ctx.branch().instructions).to.be.an('array');
+        });
+      });
+      it('should have an empty instruction array', () => {
+        sequence((ctx) => {
+          expect(ctx.branch().instructions).to.be.empty;
+        });
+      });
+      it('should have an instruction index with a value of 0', () => {
+        sequence((ctx) => {
+          expect(ctx.branch().iIndex).to.equal(0);
+        });
+      });
+      it('should have an transform array with the parent sequence context\'s current ' +
+        'transform values', () => {
+        let offset = [10, -20.2];
+        sequence((ctx) => {
+          ctx.pushTransform(offset);
+          expect(ctx.branch().transforms).to.deep.equal(offset);
+        });
+      });
+      it('should have a transform lower bound of 2', () => {
+        sequence((ctx) => {
+          expect(ctx.branch().tLowerBound).to.equal(2);
+        });
+      });
+      it('should have the same instructor value as the parent sequence context', () => {
+        let myInstructor = instructor(mockCanvasCtx2D, (out, v) => {return out});
+        sequence((ctx) => {
+          expect(ctx.branch().instructor).to.equal(myInstructor);
+        }, {}, {instructor: myInstructor});
+      });
     });
 
   });
 
-  describe('Sequence', () => {
+});
 
-    beforeEach(() => {
-      mockCanvasCtx2D.reset();
-    });
-
-    it('should have a sequence function', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      expect(ctx.sequence).to.be.a('function');
-    });
-
-    it('should call the passed predicate passed as the first argument', () => {
-      let wasCalled = false;
-      let predicate = () => wasCalled = true;
-      let ctx = carve(mockCanvasCtx2D);
-
-      ctx.sequence(predicate);
-
-      expect(wasCalled).to.be.true;
-    });
-
-    it('should pass a carve context object from argument[1] to the predicate ' +
-      'as the carve context argument', function () {
-      let ctx = carve(mockCanvasCtx2D);
-      let predicate = (carveCtx) => expect(carveCtx).to.equal(ctx);
-      ctx.sequence(predicate, ctx);
-    });
-
-    it('should pass a non-"carve context" object from argument[1] to the predicate ' +
-      'as the state argument', function () {
-      let state = {a: 5};
-      let predicate = (carveCtx, s) => expect(s).to.deep.equal(state);
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.sequence(predicate, state);
-    });
-
-    it('should pass a carve context object from argument[2] to the predicate ' +
-      'as the carve context argument', function () {
-      let ctx = carve(mockCanvasCtx2D);
-      let predicate = (carveCtx) => {
-        expect(carveCtx).to.equal(ctx);
-      };
-      ctx.sequence(predicate, null, ctx);
-    });
-
-    it('should restore the carve contex\'s transform to when render was called, ' +
-      'after the render predicate is complete', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.pushTransform([10, 10]).moveTo([0, 0]).sequence((ctx) => ctx.pushTransform([20, 20]), ctx)
-        .moveTo([0, 0]).commit();
-      expect(mockCanvasCtx2D.storage.length).to.equal(2);
-      expect(mockCanvasCtx2D.storage[1].point).to.deep.equal(mockCanvasCtx2D.storage[0].point);
-    });
-
-    it('should prohibit the carve context from popping transforms off the stack to the index ' +
-      'when render was called', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.pushTransform([10, 10]).moveTo([0, 0]);
-      ctx.sequence((ctx) => ctx.popTransform().moveTo([0, 0]), ctx);
-
-      ctx.commit();
-      expect(mockCanvasCtx2D.storage.length).to.equal(2);
-      expect(mockCanvasCtx2D.storage[1].point).to.deep.equal(mockCanvasCtx2D.storage[0].point);
-    });
-
+describe('Instructor', () => {
+  it('should throw a type error if not provided with a coordinate remap function', () => {
+    expect(instructor.bind(null, mockCanvasCtx2D)).to.throw(TypeError);
   });
-
-  describe('Branch', () => {
-
+  describe('When Built', () => {
+    let myInstructor;
     beforeEach(() => {
+      myInstructor = instructor(mockCanvasCtx2D, (out, p) => {
+        out[0] = p[0];
+        out[1] = p[1];
+        return out;
+      });
       mockCanvasCtx2D.reset();
-    });
-
-    it('should be a function', () => {
-      expect(carve(mockCanvasCtx2D).branch).to.be.a('function');
     });
 
     it('should return an object', () => {
-      expect(carve(mockCanvasCtx2D).branch()).to.be.an('object');
+      expect(myInstructor).to.be.a('object');
     });
-
-    it('should have an empty instruction stack', () => {
-      let ctx = carve(mockCanvasCtx2D).moveTo([10, 10]).lineTo([10, 10]);
-      let child = ctx.branch();
-      child.commit();
-
-      expect(mockCanvasCtx2D.storage).to.be.empty;
+    it('should return an object canvasContex key that equals the canvas context', () => {
+      expect(myInstructor.canvasContext).to.equal(mockCanvasCtx2D);
     });
-
-    it('should be able to commit instruction to the same canvas context 2D object that was used ' +
-      'to create the parent', () => {
-      let child = carve(mockCanvasCtx2D).branch();
-      child.moveTo([10, 10]).commit();
-
-      expect(mockCanvasCtx2D.storage).to.not.be.empty;
-      expect(mockCanvasCtx2D.storage[0].type).to.equal('moveTo');
+    describe('The Commit Function', () => {
+      it('should submit values after a move to code to the canvas context object\'s moveTo method', () => {
+        let point = [5, 10];
+        myInstructor.commit([instructionCodes.moveTo].concat(point));
+        expect(mockCanvasCtx2D.storage[0].type).to.equal('moveTo');
+        expect(mockCanvasCtx2D.storage[0].point).to.deep.equal(point);
+      });
+      it('should submit values after a lineTo code to the canvas context object\'s lineTo method', () => {
+        let point = [10, -5];
+        myInstructor.commit([instructionCodes.lineTo].concat(point));
+        expect(mockCanvasCtx2D.storage[0].type).to.equal('lineTo');
+        expect(mockCanvasCtx2D.storage[0].point).to.deep.equal(point);
+      });
+      it('should submit the values after a quadTo code to the canvas contex object\'s' +
+        'quadraticCurveTo method', () => {
+        let control = [9, 10];
+        let point = [30, 20];
+        myInstructor.commit([instructionCodes.quadTo].concat(control, point));
+        expect(mockCanvasCtx2D.storage[0].type).to.equal('quadraticCurveTo');
+        expect(mockCanvasCtx2D.storage[0].control).to.deep.equal(control);
+        expect(mockCanvasCtx2D.storage[0].point).to.deep.equal(point);
+      });
+      it('should submit the values after a bezierTo code to the canvas context object\'s' +
+        'bezierCurveTo method', () => {
+        let controlA = [10, 30];
+        let controlB = [16, 20];
+        let point = [4, 30];
+        myInstructor.commit([instructionCodes.bezierTo].concat(controlA, controlB, point));
+        expect(mockCanvasCtx2D.storage[0].type).to.equal('bezierCurveTo');
+        expect(mockCanvasCtx2D.storage[0].controlA).to.deep.equal(controlA);
+        expect(mockCanvasCtx2D.storage[0].controlB).to.deep.equal(controlB);
+        expect(mockCanvasCtx2D.storage[0].point).to.deep.equal(point);
+      });
+      it('should stop submitting instructions after finding instruction code: -1', () => {
+        let myInstructions = [instructionCodes.moveTo].concat([4, 5], instructionCodes.lineTo, [10, 12], -1,
+          instructionCodes.lineTo, [20, 30]);
+        myInstructor.commit(myInstructions);
+        expect(mockCanvasCtx2D.storage[0].type).to.equal('moveTo');
+        expect(mockCanvasCtx2D.storage[1].type).to.equal('lineTo');
+        expect(mockCanvasCtx2D.storage[2]).to.be.undefined;
+      });
     });
+  });
+});
 
-    it('should carry the last trasform of the parent as its root transform', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      ctx.pushTransform([10, 10]).moveTo([0, 0]).commit();
-      let child = ctx.branch().moveTo([0, 0]).commit();
-
-      expect(mockCanvasCtx2D.storage[1].point).to.deep.equal(mockCanvasCtx2D.storage[0].point);
+describe('Behavior Tests', () => {
+  let myInstructor;
+  beforeEach(() => {
+    myInstructor = instructor(mockCanvasCtx2D, (out, p) => {
+      out[0] = p[0];
+      out[1] = p[1];
+      return out;
     });
-
-    it('should not allow its root transform to be popped off', () => {
-      let ctx = carve(mockCanvasCtx2D);
-      let child = ctx.pushTransform([10, 10]).branch();
-      child.moveTo([0, 0]).popTransform().moveTo([0, 0]).commit();
-
-      expect(mockCanvasCtx2D.storage[1].point).to.deep.equal(mockCanvasCtx2D.storage[0].point);
-    });
-
+    mockCanvasCtx2D.reset();
   });
 
+  it('should correctly arrange multiple sequence instructions', () => {
+    let pointA = [10, 10];
+    let pointB = [30, 1.46];
+
+    let controlA = [-10, -30.5];
+    let controlB = [-5, -40];
+    let pointC = [-30, -100];
+
+    let controlC = [80, -30.5];
+    let pointD = [-40, 80];
+
+    let myInstructions = sequence((ctx => {
+      ctx.moveTo(pointA)
+        .lineTo(pointB)
+        .bezierTo(controlA, controlB, pointC)
+        .quadTo(controlC, pointD);
+    }));
+
+    myInstructor.commit(myInstructions);
+
+    expect(mockCanvasCtx2D.storage[0].type).to.equal('moveTo');
+    expect(mockCanvasCtx2D.storage[0].point).to.deep.equal(pointA);
+
+    expect(mockCanvasCtx2D.storage[1].type).to.equal('lineTo');
+    expect(mockCanvasCtx2D.storage[1].point).to.deep.equal(pointB);
+
+    expect(mockCanvasCtx2D.storage[2].type).to.equal('bezierCurveTo');
+    expect(mockCanvasCtx2D.storage[2].controlA).to.deep.equal(controlA);
+    expect(mockCanvasCtx2D.storage[2].controlB).to.deep.equal(controlB);
+    expect(mockCanvasCtx2D.storage[2].point).to.deep.equal(pointC);
+
+    expect(mockCanvasCtx2D.storage[3].type).to.equal('quadraticCurveTo');
+    expect(mockCanvasCtx2D.storage[3].control).to.deep.equal(controlC);
+    expect(mockCanvasCtx2D.storage[3].point).to.deep.equal(pointD);
+  });
+  it('should correctly apply transform values across multiple instructions', () => {
+    let pointA = [10, 10];
+    let pointB = [30, 1.46];
+
+    let controlA = [-10, -30.5];
+    let controlB = [-5, -40];
+    let pointC = [-30, -100];
+
+    let controlC = [80, -30.5];
+    let pointD = [-40, 80];
+
+    let transformA = [1.5, -2.3];
+    let transformB = [10, 15];
+    let transformC = [-100, -30.2];
+
+    let myInstructions = sequence((ctx) => {
+      ctx
+        .pushTransform(transformA)
+        .moveTo(pointA)
+        .pushTransform(transformB)
+        .lineTo(pointB)
+        .sequence((ctx) => {
+          ctx.pushTransform(transformC)
+            .bezierTo(controlA, controlB, pointC);
+        })
+        .popTransform()
+        .sequence((ctx) => {
+          ctx.popTransform()
+            .quadTo(controlC, pointD);
+        })
+        .popTransform()
+        .popTransform()
+        .lineTo(pointA);
+    });
+    myInstructor.commit(myInstructions);
+
+    let storage = mockCanvasCtx2D.storage;
+    expect(storage[0].type).to.equal('moveTo');
+    expect(storage[0].point).to.deep.equal(addPoints(transformA, pointA));
+
+    expect(storage[1].type).to.equal('lineTo');
+    expect(storage[1].point).to
+      .deep.equal(addPoints(addPoints(transformA, transformB), pointB));
+
+    expect(storage[2].type).to.equal('bezierCurveTo');
+    expect(storage[2].controlA).to
+      .deep.equal(addPoints(addPoints(addPoints(transformA, transformB), transformC), controlA));
+    expect(storage[2].controlB).to
+      .deep.equal(addPoints(addPoints(addPoints(transformA, transformB), transformC), controlB));
+    expect(storage[2].point).to
+      .deep.equal(addPoints(addPoints(addPoints(transformA, transformB), transformC), pointC));
+
+    expect(storage[3].type).to.equal('quadraticCurveTo');
+    expect(storage[3].control).to
+      .deep.equal(addPoints(transformA, controlC));
+    expect(storage[3].point).to
+      .deep.equal(addPoints(transformA, pointD));
+
+    expect(storage[4].type).to.equal('lineTo');
+    expect(storage[4].point).to.deep.equal(pointA);
+  });
 });
