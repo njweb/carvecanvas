@@ -44,23 +44,23 @@ describe('Merge', () => {
   it('should return an array', () => {
     let tA = [10, 20];
     let tB = [-5, 5];
-    expect(merge(tA, tB)).to.be.an('array');
+    expect(merge([], tA, tB)).to.be.an('array');
   });
   it('should return an array with a length of 2', () => {
     let tA = [10, 20];
     let tB = [-5, 5];
-    expect(merge(tA, tB).length).to.equal(2);
+    expect(merge([], tA, tB).length).to.equal(2);
   });
   it('should return an array where index 0 equals the sum of both provided transform\'s index 0', () => {
     let tA = [10, 20];
     let tB = [-5, 5];
-    let result = merge(tA, tB);
+    let result = merge([], tA, tB);
     expect(result[0]).to.equal(tA[0] + tB[0]);
   });
   it('should return an array where index 1 equals the sum of both provided transform\'s index 1', () => {
     let tA = [10, 20];
     let tB = [-5, 5];
-    let result = merge(tA, tB);
+    let result = merge([], tA, tB);
     expect(result[1]).to.equal(tA[1] + tB[1]);
   });
 });
@@ -69,23 +69,23 @@ describe('Apply', () => {
   it('should return an array', () => {
     let tA = [10, 20];
     let tB = [-5, 5];
-    expect(apply(tA, tB)).to.be.an('array');
+    expect(apply([], tA, tB)).to.be.an('array');
   });
   it('should return an array with a length of 2', () => {
     let tA = [10, 20];
     let tB = [-5, 5];
-    expect(apply(tA, tB).length).to.equal(2);
+    expect(apply([], tA, tB).length).to.equal(2);
   });
   it('should return an array where index 0 equals the sum of both provided transform\'s index 0', () => {
     let tA = [10, 20];
     let tB = [-5, 5];
-    let result = apply(tA, tB);
+    let result = apply([], tA, tB);
     expect(result[0]).to.equal(tA[0] + tB[0]);
   });
   it('should return an array where index 1 equals the sum of both provided transform\'s index 1', () => {
     let tA = [10, 20];
     let tB = [-5, 5];
-    let result = apply(tA, tB);
+    let result = apply([], tA, tB);
     expect(result[1]).to.equal(tA[1] + tB[1]);
   });
 });

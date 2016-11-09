@@ -8,12 +8,14 @@ let pop = (index, lowerBound = 0) => {
   return Math.max(index - 2, Math.max(lowerBound, 0));
 };
 
-let merge = (transformA, transformB) => {
-  return [transformA[0] + transformB[0], transformA[1] + transformB[1]];
+let merge = (out, transformA, transformB) => {
+  out[0] = transformA[0] + transformB[0];
+  out[1] = transformA[1] + transformB[1];
+  return out;
 };
 
-let apply = (transform, point) => {
-  return merge(transform, point);
+let apply = (out, transform, point) => {
+  return merge(out, transform, point);
 };
 
 export {push, pop, merge, apply};
