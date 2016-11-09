@@ -1,9 +1,5 @@
-let instructor = (canvasContext, remapCoordinates) => {
-  let cache = [
-    [0, 0],
-    [0, 0],
-    [0, 0]
-  ];
+let instructions = (canvasContext, remapCoordinates) => {
+  let cache = [[0, 0], [0, 0], [0, 0]];
   return {
     moveTo: (instructions, index) => {
       let point = remapCoordinates(
@@ -43,10 +39,10 @@ let instructor = (canvasContext, remapCoordinates) => {
         controlB[1],
         point[0],
         point[1]);
-     return index + 7;
+      return index + 7;
     }
   }
 };
 
-export {instructor};
-export default {instructor};
+export {instructions};
+export default {instructions};

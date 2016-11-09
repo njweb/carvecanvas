@@ -2,7 +2,7 @@ let expect = require('chai').expect;
 let _ = require('lodash');
 
 import {canvasRenderingContext2DMock} from './canvasRenderingContext2D.mock'
-import {instructor} from '../src/instructor'
+import {instructions} from '../src/instructions'
 
 let mockContext = canvasRenderingContext2DMock();
 let remapStore = [];
@@ -19,7 +19,7 @@ describe('Instructor', () => {
   beforeEach(() => {
     mockContext.reset();
     remapStore = [];
-    instructorInstance = instructor(mockContext, remapper);
+    instructorInstance = instructions(mockContext, remapper);
   });
 
   describe('Move To', () => {
