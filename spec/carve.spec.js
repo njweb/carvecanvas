@@ -273,6 +273,12 @@ describe('Sequence', () => {
             });
           }, {}, {instructor: myInstructor});
         });
+        it('should reset the instruction index to 0', () => {
+          sequence((ctx) => {
+            ctx.moveTo([2, 3]).commit();
+            expect(ctx.iIndex).to.equal(0);
+          }, {}, {instructor: myInstructor});
+        });
       });
     });
 
