@@ -1,4 +1,4 @@
-# Carve Canvas v0.2.0
+# Carve Canvas v0.2.2
 
 ## What is it?
 
