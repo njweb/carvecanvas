@@ -7,57 +7,18 @@ import {canvasRenderingContext2DMock} from './canvasRenderingContext2D.mock.js';
 
 let mockCanvasCtx2D = canvasRenderingContext2DMock();
 let addPoints = (a, b) => [a[0] + b[0], a[1] + b[1]];
-let coordPassthrough = (out, v) => {
-  out[0] = v[0];
-  out[1] = v[1];
-  return out;
-};
 
 describe('Carve', () => {
-
-  it('should do stuff',() =>{
-    function Model(obj){
-      this._model = obj || {};
-      this.callbacks = [];
-    }
-    Model.prototype.get = function get(key){
-      return this._model[key];
-    };
-    Model.prototype.set = function set(key, value){
-      if(this._model[key] !== value){
-        var transform = {};
-        transform[key] = value;
-        var oldModel = this._model;
-        this._model = Object.assign({}, this._model, transform);
-
-        this.callbacks.forEach((function(handler) {
-          handler(oldModel, this._model);
-        }).bind(this));
-      }
-    };
-    Model.prototype.on = function(type, handler){
-      if(type === "change"){
-        this.callbacks.push(handler);
-      }
-    };
-
-    var m = new Model({name: 'John'});
-    m.on('change', function(n, o) {console.log('AAA', n, o);});
-    m.on('change', function(n, o) {console.log('BBB', n, o);});
-    m.set('name', 'george');
-    console.log(m.get('name'));
-    m.set('age', 5);
-  });
 
   it('should be a function', () => {
     expect(carve).to.be.a('function');
   });
   it('should return an object with a sequence method', () => {
-    let myCarve = carve(mockCanvasCtx2D, coordPassthrough);
+    let myCarve = carve(mockCanvasCtx2D);
     expect(myCarve).to.respondTo('sequence');
   });
   it('should return an object with a commit method', () => {
-    let myCarve = carve(mockCanvasCtx2D, coordPassthrough);
+    let myCarve = carve(mockCanvasCtx2D);
     expect(myCarve).to.respondTo('sequence');
   });
 
@@ -65,7 +26,7 @@ describe('Carve', () => {
 
     let myCarveObj;
     beforeEach(() => {
-      myCarveObj = carve(mockCanvasCtx2D, coordPassthrough)
+      myCarveObj = carve(mockCanvasCtx2D);
     });
 
     it('should call a passed sequencer function', () => {
@@ -145,7 +106,7 @@ describe('Carve', () => {
       });
       it('should return the instruction array from the configuration (if provided)', () => {
         let myArray = [];
-        carve(mockCanvasCtx2D, coordPassthrough, {instructions: myArray}).sequence((ctx) => {
+        carve(mockCanvasCtx2D, {instructions: myArray}).sequence((ctx) => {
           expect(ctx.getInstructions()).to.equal(myArray);
         });
       });
@@ -321,7 +282,7 @@ describe('Carve', () => {
           });
         });
       });
-      carve(mockCanvasCtx2D, coordPassthrough).sequence((ctx) => {
+      carve(mockCanvasCtx2D).sequence((ctx) => {
         _.forIn(ctx, (v, k) => {
           if (typeof v === 'function') {
             it('should have the function ' + k + ' on the new sequence context', () => {
@@ -443,7 +404,7 @@ describe('Carve', () => {
     let myCommit;
     beforeEach(() => {
       mockCanvasCtx2D.reset();
-      myCommit = carve(mockCanvasCtx2D, coordPassthrough).commit;
+      myCommit = carve(mockCanvasCtx2D).commit;
     });
 
     it('should return an object', () => {
@@ -496,7 +457,7 @@ describe('Carve', () => {
 describe('Behavior', () => {
   let myCarve;
   beforeEach(() => {
-    myCarve = carve(mockCanvasCtx2D, coordPassthrough);
+    myCarve = carve(mockCanvasCtx2D);
     mockCanvasCtx2D.reset();
   });
 

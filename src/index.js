@@ -122,9 +122,32 @@ let sequenceActions = {
   }
 };
 
-let carve = (canvasContext, projectCoordinate, configuration) => {
+let passthroughProjection = (out, p) => {
+  out[0] = p[0];
+  out[1] = p[1];
+  return out;
+};
 
-  let builtInstructions = instructions(canvasContext, projectCoordinate);
+let carve = (canvasContext, configuration) => {
+
+  if(configuration !== undefined && typeof  configuration !== 'object'){
+    throw TypeError('configuration must be an object');
+  }
+  configuration = configuration || {};
+
+  let projection;
+  if (configuration.projection !== undefined) {
+    if(typeof configuration.projection === 'function') {
+      projection = configuration.projection;
+    }
+    else {
+      throw TypeError('configuration.projection must be a function');
+    }
+  } else {
+    projection = passthroughProjection;
+  }
+
+  let builtInstructions = instructions(canvasContext, projection);
   let operations = [];
   operations[instructionCodes.moveTo] = builtInstructions.moveTo;
   operations[instructionCodes.lineTo] = builtInstructions.lineTo;
@@ -141,7 +164,7 @@ let carve = (canvasContext, projectCoordinate, configuration) => {
   let commitSequence = function commitSequence(predicate) {
     let instructions = capInstructions(this.instructions, this.iIndex);
     let executeCommit = () => { commit(instructions); };
-    if(typeof predicate === 'function'){
+    if (typeof predicate === 'function') {
       predicate(canvasContext, executeCommit);
     } else executeCommit();
     this.iIndex = 0;
