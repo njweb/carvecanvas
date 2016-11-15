@@ -1,4 +1,3 @@
-import {mapCoordinates} from './coordinates.js';
 import {instructionCodes} from './codes';
 import {moveTo, lineTo, quadTo, bezierTo} from './path';
 import {push, pop, apply, merge} from './transform';
@@ -26,7 +25,7 @@ let capInstructions = (instructions, iIndex) => {
   return instructions;
 };
 
-let operations = {
+let sequenceActions = {
   cache: [[0, 0], [0, 0], [0, 0]],
   moveTo(p) {
     this.iIndex = moveTo(
@@ -59,6 +58,8 @@ let operations = {
       this.applyTransform(this.cache[2], this.getTransform(this.cache[2]), p));
     return this;
   },
+
+  getInstructions() {return this.instructions;},
 
   getTransform(out) {
     if (this.tIndex === 0) {
@@ -121,43 +122,43 @@ let operations = {
   }
 };
 
-let carve = function carve(canvasContext, mapCoordinates) {
+let carve = (canvasContext, projectCoordinate, configuration) => {
 
-  if(typeof canvasContext !== 'object') {
-    throw TypeError("First argument must be a canvasRenderingContext2D object");
-  }
-  if (typeof mapCoordinates !== 'function') {
-    throw new TypeError('Must provide a remap function');
-  }
-
-  let builtInstructions = instructions(canvasContext, mapCoordinates);
+  let builtInstructions = instructions(canvasContext, projectCoordinate);
   let operations = [];
   operations[instructionCodes.moveTo] = builtInstructions.moveTo;
   operations[instructionCodes.lineTo] = builtInstructions.lineTo;
   operations[instructionCodes.quadTo] = builtInstructions.quadTo;
   operations[instructionCodes.bezierTo] = builtInstructions.bezierTo;
 
-  let commit = function commit(instructions, predicate) {
-    let execute = () => {
-      let iIndex = 0;
-      while (iIndex < instructions.length && instructions[iIndex] != -1) {
-        iIndex = operations[instructions[iIndex]](instructions, iIndex);
-      }
-    };
-    if(typeof predicate === 'function'){
-      predicate(canvasContext, execute);
-    } else execute();
-    return commit;
+  let commit = (instructions) => {
+    let iIndex = 0;
+    while (iIndex < instructions.length && instructions[iIndex] != -1) {
+      iIndex = operations[instructions[iIndex]](instructions, iIndex);
+    }
   };
 
-  return commit;
-};
-carve.sequence = (predicate, configuration) => {
-  configuration = configuration || {};
+  let commitSequence = function commitSequence(predicate) {
+    let instructions = capInstructions(this.instructions, this.iIndex);
+    let executeCommit = () => { commit(instructions); };
+    if(typeof predicate === 'function'){
+      predicate(canvasContext, executeCommit);
+    } else executeCommit();
+    this.iIndex = 0;
+    return this;
+  };
 
-  let seqCtx = applySequenceConfiguration(Object.create(operations), configuration);
-  predicate(seqCtx, configuration.state);
-  return capInstructions(seqCtx.instructions, seqCtx.iIndex);
+  let carveCtx = applySequenceConfiguration(
+    Object.create(Object.assign({}, {commit: commitSequence}, sequenceActions)),
+    configuration);
+
+  return {
+    sequence: (predicate, state) => {
+      predicate(carveCtx, state);
+      return carveCtx.instructions;
+    },
+    commit
+  };
 };
 
 export {carve};
