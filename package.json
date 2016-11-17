@@ -1,7 +1,7 @@
 {
   "name": "carvecanvas",
   "version": "0.2.2",
-  "description": "A html canvas 2D context dynamic path rendering library",
+  "description": "A small JS library for drawing dynamic paths into html canvas elements.",
   "repository": {
     "type": "git",
     "url": "https://github.com/njweb/carvecanvas"
