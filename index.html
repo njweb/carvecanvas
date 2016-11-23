@@ -3,146 +3,39 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Carvecanvas by njweb</title>
-    <link rel="stylesheet" href="stylesheets/styles.css">
+    <title>CarveCanvas by njweb</title>
+    <link rel="stylesheet" href="stylesheets/skeleton.css">
     <link rel="stylesheet" href="stylesheets/github-dark.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="javascripts/respond.js"></script>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <script src="https://cdn.jsdelivr.net/lodash/4.17.2/lodash.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"></script>
+    <script src="javascripts/gl-matrix.min.js" defer></script>
+    <script src="javascripts/carvecanvas.min.js" defer></script>
+    <script src="javascripts/crossup.js" defer></script>
+    <script src="javascripts/blobBlock.js" defer></script>
+    <script src="javascripts/app.js" defer></script>
     <!--[if lt IE 9]>
       <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!--[if lt IE 8]>
-    <link rel="stylesheet" href="stylesheets/ie.css">
     <![endif]-->
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
   </head>
   <body>
-      <div id="header">
-        <nav>
-          <li class="fork"><a href="https://github.com/njweb/carvecanvas">View On GitHub</a></li>
-          <li class="downloads"><a href="https://github.com/njweb/carvecanvas/zipball/master">ZIP</a></li>
-          <li class="downloads"><a href="https://github.com/njweb/carvecanvas/tarball/master">TAR</a></li>
-          <li class="title">DOWNLOADS</li>
-        </nav>
-      </div><!-- end header -->
+    <header>
+      <h1>Carve Canvas</h1>
+    </header>
 
-    <div class="wrapper">
-
-      <section>
-        <div id="title">
-          <h1>Carvecanvas</h1>
-          <p>A small library to assist in the creation of dynamic paths for the html canvas object&#39;s 2D context.</p>
-          <hr>
-          <span class="credits left">Project maintained by <a href="https://github.com/njweb">njweb</a></span>
-          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+    <div class="container">
+      <h3>Menagerie</h3>
+      <div class="row">
+        <div class="six columns unit">
+          <canvas width="256" height="256" id="canvas-crossup"/>
         </div>
-
-        <h1>
-<a id="carve-canvas-v022" class="anchor" href="#carve-canvas-v022" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Carve Canvas v0.2.2</h1>
-
-<h2>
-<a id="what-is-it" class="anchor" href="#what-is-it" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>What is it?</h2>
-
-<p>A small JS library to help make drawing dynamic paths into <code>&lt;canvas&gt;</code> elements easier.</p>
-
-<h2>
-<a id="examples" class="anchor" href="#examples" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Examples</h2>
-
-<p>A simple example</p>
-
-<p><strong>Note: Within this library 2D vectors are expected as two element arrays, so [x, y]</strong></p>
-
-<div class="highlight highlight-source-js"><pre><span class="pl-k">import</span> <span class="pl-smi">carve</span> <span class="pl-k">from</span> <span class="pl-s"><span class="pl-pds">'</span>carve-canvas<span class="pl-pds">'</span></span>
-<span class="pl-k">let</span> canvasCtx <span class="pl-k">=</span> <span class="pl-c1">document</span>.<span class="pl-c1">querySelector</span>(<span class="pl-s"><span class="pl-pds">'</span>#my-canvas<span class="pl-pds">'</span></span>).<span class="pl-c1">getContext</span>(<span class="pl-s"><span class="pl-pds">'</span>2d<span class="pl-pds">'</span></span>);
-<span class="pl-k">let</span> carveObj <span class="pl-k">=</span> <span class="pl-en">carve</span>(canvasCtx);
-
-<span class="pl-smi">canvasCtx</span>.<span class="pl-en">beginPath</span>();
-
-<span class="pl-smi">carveObj</span>.<span class="pl-en">sequence</span>((<span class="pl-smi">carveCtx</span>) <span class="pl-k">=&gt;</span> {
-    carveCtx
-        .<span class="pl-c1">moveTo</span>([<span class="pl-c1">10</span>, <span class="pl-c1">10</span>])
-        .<span class="pl-en">lineTo</span>([<span class="pl-c1">50</span>, <span class="pl-c1">50</span>) 
-        .<span class="pl-en">lineTo</span>([<span class="pl-c1">50</span>, <span class="pl-c1">10</span>])
-        .<span class="pl-en">commit</span>(); <span class="pl-c">//This will send our stored instructions into the 2D context object.</span>
-    });
-
-<span class="pl-smi">canvasCtx</span>.<span class="pl-smi">fillStyle</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>#4A4<span class="pl-pds">'</span></span>;
-<span class="pl-smi">canvasCtx</span>.<span class="pl-en">fill</span>();</pre></div>
-
-<p>Ok, so that's the very basics.
-   Now, let's add some transformations that are applied to subsequent input operations.</p>
-
-<div class="highlight highlight-source-js"><pre><span class="pl-k">import</span> <span class="pl-smi">carve</span> <span class="pl-k">from</span> <span class="pl-s"><span class="pl-pds">'</span>carve-canvas<span class="pl-pds">'</span></span>
-<span class="pl-k">let</span> canvasCtx <span class="pl-k">=</span> <span class="pl-c1">document</span>.<span class="pl-c1">querySelector</span>(<span class="pl-s"><span class="pl-pds">'</span>#my-canvas<span class="pl-pds">'</span></span>).<span class="pl-c1">getContext</span>(<span class="pl-s"><span class="pl-pds">'</span>2d<span class="pl-pds">'</span></span>);
-<span class="pl-k">let</span> carveObj <span class="pl-k">=</span> <span class="pl-en">carve</span>(canvasCtx);
-
-<span class="pl-smi">carveObj</span>.<span class="pl-en">sequence</span>((<span class="pl-smi">carveCtx</span>) <span class="pl-k">=&gt;</span> {
-    <span class="pl-c">// The carve 'context' object has a transform stack we can push offsets to.</span>
-    <span class="pl-smi">carveCtx</span>.<span class="pl-en">pushTransform</span>([<span class="pl-c1">0</span>, <span class="pl-c1">10</span>])
-    .<span class="pl-c1">moveTo</span>([<span class="pl-c1">0</span>, <span class="pl-k">-</span><span class="pl-c1">10</span>])
-    .<span class="pl-en">lineTo</span>([<span class="pl-k">-</span><span class="pl-c1">10</span>, <span class="pl-c1">0</span>])
-
-    <span class="pl-c">// Transforms combine as we push them to the stack,</span>
-    <span class="pl-c">//     so our current global transform point is [0, 50].</span>
-    .<span class="pl-en">pushTransform</span>([<span class="pl-c1">0</span>, <span class="pl-c1">40</span>]) 
-    .<span class="pl-en">lineTo</span>([<span class="pl-k">-</span><span class="pl-c1">10</span>, <span class="pl-c1">0</span>])
-    .<span class="pl-en">lineTo</span>([<span class="pl-c1">0</span>, <span class="pl-c1">10</span>])
-    .<span class="pl-en">lineTo</span>([<span class="pl-c1">10</span>, <span class="pl-c1">0</span>])
-
-    <span class="pl-c">// And now we're back to [0, 10].</span>
-    .<span class="pl-en">popTransform</span>()
-    .<span class="pl-en">lineTo</span>([<span class="pl-c1">10</span>, <span class="pl-c1">0</span>])
-    .<span class="pl-en">commit</span>((<span class="pl-smi">canvasCtx</span>, <span class="pl-smi">trigger</span>) <span class="pl-k">=&gt;</span> { <span class="pl-c">//we can pass a function to .commit</span>
-            <span class="pl-c">// The predicate we pass to .commit gets the original CanvasRenderingContext2D</span>
-            <span class="pl-c">//   object we passed in when we created carveCtx.</span>
-            <span class="pl-smi">canvasCtx</span>.<span class="pl-en">beginPath</span>();
-
-            <span class="pl-c">// By calling this trigger function, all our stored instructions </span>
-            <span class="pl-c">//   get dumped into the canvas context</span>
-            <span class="pl-en">trigger</span>();
-
-            <span class="pl-c">// We can do our canvas context drawing </span>
-            <span class="pl-c">//   configuration/execution in this predicate function</span>
-            <span class="pl-smi">canvasCtx</span>.<span class="pl-smi">fillStyle</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>#0C0<span class="pl-pds">'</span></span>; 
-            <span class="pl-smi">canvasCtx</span>.<span class="pl-en">fill</span>();
-        });
-    });</pre></div>
-
-<p>And now, we can break our paths up into sequences that can be chained together</p>
-
-<div class="highlight highlight-source-js"><pre><span class="pl-k">import</span> <span class="pl-smi">carve</span> <span class="pl-k">from</span> <span class="pl-s"><span class="pl-pds">'</span>carve-canvas<span class="pl-pds">'</span></span>
-<span class="pl-k">let</span> canvasCtx <span class="pl-k">=</span> <span class="pl-c1">document</span>.<span class="pl-c1">querySelector</span>(<span class="pl-s"><span class="pl-pds">'</span>#my-canvas<span class="pl-pds">'</span></span>).<span class="pl-c1">getContext</span>(<span class="pl-s"><span class="pl-pds">'</span>2d<span class="pl-pds">'</span></span>);
-<span class="pl-k">let</span> carveObj <span class="pl-k">=</span> <span class="pl-en">carve</span>(canvasCtx);
-
-<span class="pl-smi">carveObj</span>.<span class="pl-en">sequence</span>((<span class="pl-smi">carveCtx</span>) <span class="pl-k">=&gt;</span>
-    <span class="pl-smi">carveCtx</span>.<span class="pl-en">pushTransform</span>([<span class="pl-k">-</span><span class="pl-c1">40</span>, <span class="pl-c1">0</span>])
-        .<span class="pl-c1">moveTo</span>([<span class="pl-k">-</span><span class="pl-c1">10</span>, <span class="pl-c1">0</span>])
-        <span class="pl-c">// The .sequence method takes a handler function</span>
-        .<span class="pl-en">sequence</span>((<span class="pl-smi">seqCtx</span>) <span class="pl-k">=&gt;</span> {
-            <span class="pl-c">// The first argument passed into the</span>
-            <span class="pl-c">//   sequence handler funtion is our carveCtx object</span>
-            <span class="pl-c">//   unless that behavior has been overridden</span>
-
-            <span class="pl-smi">seqCtx</span>.<span class="pl-en">pushTransform</span>([<span class="pl-c1">40</span>, <span class="pl-c1">40</span>])
-                .<span class="pl-en">lineTo</span>([<span class="pl-k">-</span><span class="pl-c1">20</span>, <span class="pl-c1">10</span>])
-                .<span class="pl-en">lineTo</span>([<span class="pl-c1">20</span>, <span class="pl-c1">10</span>]);
-
-            <span class="pl-smi">seqCtx</span>.<span class="pl-en">sequence</span>((<span class="pl-smi">seqCtx</span>) <span class="pl-k">=&gt;</span> {
-                <span class="pl-smi">seqCtx</span>.<span class="pl-en">pushTransform</span>([<span class="pl-c1">40</span>, <span class="pl-k">-</span><span class="pl-c1">40</span>])
-                    .<span class="pl-en">lineTo</span>([<span class="pl-c1">10</span>, <span class="pl-c1">0</span>])
-                    .<span class="pl-en">lineTo</span>([<span class="pl-k">-</span><span class="pl-c1">10</span>, <span class="pl-c1">0</span>]);
-            });
-
-            <span class="pl-c">// When we return from a sequence, our transform is</span>
-            <span class="pl-c">//   right where we left it.</span>
-            <span class="pl-smi">seqCtx</span>.<span class="pl-en">lineTo</span>([<span class="pl-c1">0</span>, <span class="pl-k">-</span><span class="pl-c1">10</span>]);
-        });
-    });</pre></div>
-      </section>
-
+        <div class="six columns unit">
+          <canvas width="256" height="256" id="canvas-blobblock"/>
+        </div>
+      </div>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
     
   </body>
 </html>
