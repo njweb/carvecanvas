@@ -55,6 +55,14 @@ var carveBlobBlock = carve(document.querySelector('#canvas-blobblock').getContex
 		transforms: transforms
 	});
 
+var transformTreeSystem = transformTree();
+var carveTransformTree = carve(document.querySelector('#canvas-transformtree').getContext('2d'),
+	{
+		projection: pointProjector.createProjector(),
+		instructions: instructions,
+		transforms: transforms
+	});
+
 var doRendering = function doRendering() {
 
 	carveCrossup.sequence(function renderCrossover(ctx) {
@@ -72,6 +80,14 @@ var doRendering = function doRendering() {
 
 		blobBlockSystem.render(ctx);
 	});
+
+	carveTransformTree.sequence(function renderTransformTree(ctx) {
+		ctx.commit(function clear(canvasCtx) {
+			canvasCtx.clearRect(0, 0, canvasCtx.canvas.width, canvasCtx.canvas.height);
+		});
+
+		transformTreeSystem.render(ctx);
+	});
 };
 
 var isUpdating = false;
@@ -87,6 +103,7 @@ var doUpdate = (function() {
 
 		crossupSystem.update(delta);
 		blobBlockSystem.update(delta);
+		transformTreeSystem.update(delta);
 
 		doRendering();
 
