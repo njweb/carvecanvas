@@ -270,6 +270,7 @@
 		        canvasCtx.beginPath();
 		        op();
 		        canvasCtx.globalCompositeOperation = 'destination-out';
+		        canvasCtx.fillStyle = 'rgba(0, 0, 0, 1)';
 		        canvasCtx.fill();
 		        canvasCtx.globalCompositeOperation = 'source-over';
 		      })
